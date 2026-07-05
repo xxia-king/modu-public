@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="../vditor/dist/index.css">
+  <style>
+    :root {
+      color-scheme: light;
+      --modu-bg: #ffffff;
+      --modu-fg: #24292f;
+      --modu-muted: #6e7781;
+      --modu-surface: #f6f8fa;
+      --modu-border: #d8dee4;
+      --modu-accent: #0969da;
+      --modu-font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      --modu-mono: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    }
+
+    html,
+    body,
+    #editor {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: var(--modu-bg);
+      color: var(--modu-fg);
+      font-family: var(--modu-font);
+    }
+
+    .vditor {
+      width: 100%;
+      height: 100%;
+      border: 0 !important;
+      border-radius: 0 !important;
+      background: var(--modu-bg) !important;
+      --textarea-background-color: var(--modu-bg);
+    }
+
+    .vditor-toolbar,
+    .vditor-counter,
+    .vditor-resize {
+      display: none !important;
+    }
+
+    .vditor-content {
+      height: 100% !important;
+      background: var(--modu-bg) !important;
+    }
+
+    .vditor-ir {
+      height: 100% !important;
+      padding: 24px 32px 56px !important;
+      overflow-y: auto !important;
+      background: var(--modu-bg) !important;
+      color: var(--modu-fg) !important;
+      font-family: var(--modu-font) !important;
+      font-size: var(--modu-font-size, 16px) !important;
+      line-height: 1.7 !important;
+      box-sizing: border-box;
+    }
+
+    .vditor-reset,
+    .vditor-reset p,
+    .vditor-reset li,
+    .vditor-reset td {
+      color: var(--modu-fg) !important;
+      font-family: var(--modu-font) !important;
+    }
+
+    .vditor-ir h1,
+    .vditor-ir h2,
+    .vditor-ir h3,
+    .vditor-ir h4,
+    .vditor-ir h5,
+    .vditor-ir h6 {
+      color: var(--modu-fg) !important;
+      font-family: var(--modu-font) !important;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .vditor-ir h1 {
+      font-size: calc(var(--modu-font-size, 16px) + 14px);
+      padding-bottom: 0.25em;
+      border-bottom: 1px solid var(--modu-border);
+    }
+
+    .vditor-ir h2 {
+      font-size: calc(var(--modu-font-size, 16px) + 8px);
+      padding-bottom: 0.2em;
+      border-bottom: 1px solid var(--modu-border);
+    }
+
+    .vditor-ir h3 {
+      font-size: calc(var(--modu-font-size, 16px) + 4px);
+    }
+
+    .vditor-reset code,
+    .vditor-reset pre {
+      background: var(--modu-surface) !important;
+      color: var(--modu-fg) !important;
+      font-family: var(--modu-mono) !important;
+    }
+
+    .vditor-ir table {
+      width: 100%;
+      max-width: 100%;
+      border-collapse: collapse;
+    }
+
+    .vditor-ir th,
+    .vditor-ir td {
+      border: 1px solid var(--modu-border);
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .vditor-ir a {
+      color: var(--modu-accent);
+    }
+  </style>
+</head>
+<body>
+  <div id="editor"></div>
+  <script src="../vditor/dist/js/i18n/zh_CN.js"></script>
+  <script src="../vditor/dist/index.min.js"></script>
+  <script>
+    const bridge = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.editor;
+    const rootStyle = document.documentElement.style;
+    const collapseDelay = 220;
+    let editor = null;
+    let applyingExternalValue = false;
+    let pendingValue = "";
+    let ready = false;
+    let collapseTimer = null;
+    let emitValueFrame = { current: null };
+
+    function post(payload) {
+      if (bridge) bridge.postMessage(payload);
+    }
+
+    function setFontSize(size) {
+      rootStyle.setProperty("--modu-font-size", `${size}px`);
+    }
+
+    function collapseExpandedMarkers() {
+      if (!editor || !editor.vditor || !editor.vditor.ir) return;
+      editor.vditor.ir.element
+        .querySelectorAll(".vditor-ir__node--expand")
+        .forEach((node) => node.classList.remove("vditor-ir__node--expand"));
+    }
+
+    function scheduleCollapse() {
+      if (collapseTimer !== null) window.clearTimeout(collapseTimer);
+      collapseTimer = window.setTimeout(() => {
+        collapseTimer = null;
+        collapseExpandedMarkers();
+      }, collapseDelay);
+    }
+
+    window.setMarkdown = function(value) {
+      pendingValue = value || "";
+      if (!ready || !editor) return;
+      if (editor.getValue() === pendingValue) return;
+      applyingExternalValue = true;
+      editor.setValue(pendingValue, true);
+      window.requestAnimationFrame(() => {
+        applyingExternalValue = false;
+        collapseExpandedMarkers();
+      });
+    };
+
+    window.setEditorOptions = function(options) {
+      if (options && typeof options.fontSize === "number") {
+        setFontSize(options.fontSize);
+      }
+    };
+
+    function selectedTextOr(placeholder) {
+      const selection = window.getSelection();
+      const selected = selection ? selection.toString() : "";
+      return selected && selected.length > 0 ? selected : placeholder;
+    }
+
+    function deleteSelectionIfNeeded() {
+      const selection = window.getSelection();
+      if (selection && !selection.isCollapsed) {
+        editor.deleteValue();
+      }
+    }
+
+    function emitCurrentValue() {
+      if (emitValueFrame.current !== null) {
+        window.cancelAnimationFrame(emitValueFrame.current);
+      }
+      emitValueFrame.current = window.requestAnimationFrame(() => {
+        emitValueFrame.current = null;
+        collapseExpandedMarkers();
+        post({ type: "change", value: editor.getValue() });
+        editor.focus();
+      });
+    }
+
+    function prefixedLines(prefix, value) {
+      return value
+        .split(/\r\n|\r|\n/g)
+        .map((line) => line.trim().length > 0 ? `${prefix}${line}` : line)
+        .join("\n");
+    }
+
+    function normalizeHeadingText(value) {
+      return (value || "")
+        .replace(/^[#\s]+/, "")
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    function scrollToHeading(title) {
+      if (!editor || !editor.vditor || !editor.vditor.ir) return;
+      const root = editor.vditor.ir.element;
+      const expected = normalizeHeadingText(title);
+      if (!root || !expected) return;
+
+      const headings = Array.from(root.querySelectorAll("h1,h2,h3,h4,h5,h6,[data-type='heading']"));
+      const target = headings.find((node) => normalizeHeadingText(node.textContent) === expected);
+      if (!target) return;
+
+      target.scrollIntoView({ block: "start", behavior: "smooth" });
+      editor.focus();
+    }
+
+    window.runModuCommand = function(command) {
+      if (!ready || !editor || !command) return;
+      const kind = command.kind || "";
+      const placeholder = command.placeholder || "文本";
+      let markdown = "";
+
+      if (kind === "scrollToHeading") {
+        scrollToHeading(command.text || "");
+        return;
+      } else if (kind === "wrap") {
+        const selected = selectedTextOr(placeholder);
+        markdown = `${command.prefix || ""}${selected}${command.suffix || ""}`;
+      } else if (kind === "line") {
+        const selected = selectedTextOr(placeholder);
+        markdown = prefixedLines(command.prefix || "", selected);
+      } else if (kind === "insert") {
+        markdown = command.text || "";
+      } else {
+        return;
+      }
+
+      deleteSelectionIfNeeded();
+      editor.insertMD(markdown);
+      emitCurrentValue();
+    };
+
+    window.addEventListener("DOMContentLoaded", () => {
+      setFontSize(16);
+      editor = new Vditor(document.getElementById("editor"), {
+        value: "",
+        mode: "ir",
+        height: "100%",
+        width: "100%",
+        cdn: "../vditor",
+        lang: "zh_CN",
+        i18n: window.VditorI18n,
+        toolbar: [],
+        resize: { enable: false },
+        counter: { enable: false },
+        cache: { enable: false },
+        preview: {
+          markdown: { sanitize: true },
+          theme: { current: "light", path: "" },
+          hljs: { enable: false, lineNumber: false, style: "github" }
+        },
+        after() {
+          ready = true;
+          if (pendingValue) {
+            applyingExternalValue = true;
+            editor.setValue(pendingValue, true);
+            window.requestAnimationFrame(() => {
+              applyingExternalValue = false;
+              collapseExpandedMarkers();
+            });
+          }
+          post({ type: "ready" });
+        },
+        input(value) {
+          if (applyingExternalValue) return;
+          scheduleCollapse();
+          emitCurrentValue();
+        },
+        keydown() {
+          scheduleCollapse();
+        },
+        blur() {
+          if (collapseTimer !== null) {
+            window.clearTimeout(collapseTimer);
+            collapseTimer = null;
+          }
+          collapseExpandedMarkers();
+        }
+      });
+    });
+  </script>
+</body>
+</html>

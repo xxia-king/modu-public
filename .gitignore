@@ -1,0 +1,32 @@
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Xcode
+DerivedData/
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Build artifacts
+*.o
+*.obj
+*.exe
+*.app
+*.dylib
+*.dll
+*.so
+
+# IDE
+.vscode/
+.idea/
+
+# Local/private workspace files
+.local/
+*.local
+*.local.*
