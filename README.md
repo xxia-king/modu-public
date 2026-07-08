@@ -79,9 +79,25 @@ swift run
 
 本仓库包含应用源码和必要的前端编辑器静态资源。构建产物和本地私有工作区文件不纳入版本控制。
 
-## 联系
+## 参与贡献
 
-<img src="assets/wechat-qr.jpg" alt="微信二维码" width="180">
+欢迎通过 issue 或 pull request 提交问题反馈、功能建议和代码改进。贡献前请先阅读 [CONTRIBUTING.md](./CONTRIBUTING.md)。
+
+## 作者与联系
+
+金莉珊，浙江嘉瑞成律师事务所执业律师，坐标浙江温州。主要关注民商事争议解决，同时持续探索 AI 技术在法律工作中的应用。
+
+- 个人主页：[https://jinlishan.com/](https://jinlishan.com/)
+- 微信号：`jinlishan_`（添加请备注来自 GitHub）
+- 公众号：日进斗金大壮
+- 视频号：金莉珊律师
+
+<p>
+  <img src="assets/wechat-qr.jpg" alt="微信二维码" width="160">
+  <img src="assets/qr-gongzhonghao.jpg" alt="公众号二维码" width="160">
+  <img src="assets/qr-video.jpg" alt="视频号二维码" width="160">
+</p>
+
 
 ## 许可证
 
