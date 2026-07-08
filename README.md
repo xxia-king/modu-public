@@ -85,18 +85,14 @@ swift run
 
 ## 作者与联系
 
-金莉珊，浙江嘉瑞成律师事务所执业律师，坐标浙江温州。主要关注民商事争议解决，同时持续探索 AI 技术在法律工作中的应用。
+金莉珊，浙江嘉瑞成律师事务所执业律师，热衷于探索 AI 科技在法律实务中的应用。
 
 - 个人主页：[https://jinlishan.com/](https://jinlishan.com/)
 - 微信号：`jinlishan_`（添加请备注来自 GitHub）
 - 公众号：日进斗金大壮
 - 视频号：金莉珊律师
 
-<p>
-  <img src="assets/wechat-qr.jpg" alt="微信二维码" width="160">
-  <img src="assets/qr-gongzhonghao.jpg" alt="公众号二维码" width="160">
-  <img src="assets/qr-video.jpg" alt="视频号二维码" width="160">
-</p>
+<img src="assets/wechat-qr.jpg" alt="微信二维码" width="160">
 
 
 ## 许可证
